@@ -15,3 +15,6 @@ for task in tasks:
     print(f"{count}) Duration: {task[0]}, Type: {task[1]}, Name: {task[2]}")
     count += 1
 
+
+# Priorities and resources each task type needs
+taskType = {'Z':(1, ['R1','R2']), 'Y':(2, ['R2','R3']), 'Z':(3, ['R1','R3'])}
