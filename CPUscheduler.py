@@ -1,14 +1,16 @@
-# Read the number of resources for R1, R2, and R3
-num_resources = input().split(' ')# 'Enter the number of resources for R1, R2, and R3: '
-num_tasks = int(input()) # "Enter the number of tasks: "
+num_resources = list(map(int, input("Enter the data for resources and tasks:\n").split()))
+num_tasks = int(input())
 tasks = []
 for _ in range(num_tasks):
-    task_data = input().split() # "Enter task details (Duration_Task, Type_Task, Name_Task): "
-    duration, task_type, task_name = map(int, task_data)
+    task_data = input().split()
+    duration, task_type, task_name = (task_data[0]), (task_data[1]), int(task_data[2])
     tasks.append((duration, task_type, task_name))
 
-print(f"Number of resources: {num_resources}")
+print(f"Resources: {num_resources}")
 print(f"Number of tasks: {num_tasks}")
 print("Task details:")
+count = 1
 for task in tasks:
-    print(f"Duration: {task[0]}, Type: {task[1]}, Name: {task[2]}")
+    print(f"{count}) Duration: {task[0]}, Type: {task[1]}, Name: {task[2]}")
+    count += 1
+
