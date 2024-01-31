@@ -15,11 +15,4 @@ for task in tasks:
     print(f"{count}) Duration: {task[0]}, Type: {task[1]}, Name: {task[2]}")
     count += 1
 
-<<<<<<< HEAD
-=======
-for task in tasks:
-    print(f"{count}) Duration: {task[0]}, Type: {task[1]}, Name: {task[2]}")
-    count += 1
->>>>>>> bff5d5fca9a528d0c6903145a8134d385671f8ff
-
 
