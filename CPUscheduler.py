@@ -1,3 +1,6 @@
+# A change to code
+
+
 # Read the number of resources for R1, R2, and R3
 num_resources = list(map(int, input("Enter the number of resources for R1, R2, and R3: ").split()))
 
