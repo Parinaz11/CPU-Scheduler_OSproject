@@ -61,8 +61,6 @@ def main():
         kernelThread.join()
 
 
-
-
 if __name__ == "__main__":
     print("---- SJF ---")
     main()
