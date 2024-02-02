@@ -1,6 +1,7 @@
 # Taking input
 import threading
-import queue
+from queue import PriorityQueue
+from queue import Queue
 
 class Task:
     def __init__(self, name, task_type, duration):
@@ -23,8 +24,8 @@ class Task:
 
 # Global variables
 mutex = threading.Lock()
-ready_q = queue.PriorityQueue()
-waiting_q = queue.Queue()
+ready_q = PriorityQueue()
+waiting_q = Queue()
 
 def sjf_scheduler(core):
     print("Hey I'm core", core)
@@ -46,7 +47,7 @@ def main():
     count = 1
     # Putting all the tasks in ready queue
     for task in tasks:
-        ready_q.put(task.priority, task)
+        ready_q.put((task.priority, task.name))
         print(f"{count}) Duration: {task.duration}, Type: {task.task_type}, Name: {task.name}, State: {task.state}, Time On CPU: {task.exec_time}")
         count += 1
 
