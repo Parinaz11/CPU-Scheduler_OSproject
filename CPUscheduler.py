@@ -1,20 +1,68 @@
-# ---Taking input---
-num_resources = list(map(int, input("Enter the data for resources and tasks:\n").split()))
-num_tasks = int(input())
-tasks = []
-for _ in range(num_tasks):
-    task_data = input().split()
-    duration, task_type, task_name = (task_data[0]), (task_data[1]), int(task_data[2])
-    tasks.append((duration, task_type, task_name))
+# Taking input
+import threading
+import queue
 
-print(f"Resources: {num_resources}")
-print(f"Number of tasks: {num_tasks}")
-print("Task details:")
-count = 1
-for task in tasks:
-    print(f"{count}) Duration: {task[0]}, Type: {task[1]}, Name: {task[2]}")
-    count += 1
+class Task:
+    def __init__(self, name, task_type, duration):
+        self.name = name
+        self.task_type = task_type
+        self.duration = duration
+        match task_type:
+            case 'X':
+                self.priority = 1
+                self.resources = ['R1','R2']
+            case 'Y':
+                self.priority = 2
+                self.resources = ['R2','R3']
+            case 'Z':
+                self.priority = 3
+                self.resources = ['R1','R3']
+        self.state = 'Ready'
+        self.exec_time = 0
+        
+
+# Global variables
+mutex = threading.Lock()
+ready_q = queue.PriorityQueue()
+waiting_q = queue.Queue()
+
+def sjf_scheduler(core):
+    print("Hey I'm core", core)
 
 
-# Priorities and resources each task type needs
-taskType = {'Z':(1, ['R1','R2']), 'Y':(2, ['R2','R3']), 'Z':(3, ['R1','R3'])}
+def main():
+    num_resources = list(map(int, input("Enter the data for resources and tasks:\n").split()))
+    num_tasks = int(input())
+    tasks = []
+    for _ in range(num_tasks):
+        task_data = input().split()
+        task_name, task_type, duration = (task_data[0]), (task_data[1]), int(task_data[2])
+        t = Task(task_name, task_type, duration)
+        tasks.append(t)
+
+    print(f"Resources: {num_resources}")
+    print(f"Number of tasks: {num_tasks}")
+    print("Task details:")
+    count = 1
+    # Putting all the tasks in ready queue
+    for task in tasks:
+        ready_q.put(task.priority, task)
+        print(f"{count}) Duration: {task.duration}, Type: {task.task_type}, Name: {task.name}, State: {task.state}, Time On CPU: {task.exec_time}")
+        count += 1
+
+    kernal_threads = []
+    for core in range(1, 5):
+        kernelThread = threading.Thread(target=sjf_scheduler, args=(core,))
+        kernal_threads.append(kernelThread)
+        kernelThread.start()
+
+    # Waiting for threads to finish
+    for kernelThread in kernal_threads:
+        kernelThread.join()
+
+
+
+
+if __name__ == "__main__":
+    print("---- SJF ---")
+    main()
