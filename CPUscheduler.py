@@ -21,7 +21,6 @@ class Task:
         self.exec_time = 0
         
 
-<<<<<<< Updated upstream
 # Global variables
 mutex = threading.Lock()
 ready_q = queue.PriorityQueue()
@@ -67,8 +66,3 @@ def main():
 if __name__ == "__main__":
     print("---- SJF ---")
     main()
-=======
-
-# Priorities and resources each task type needs
-taskType = {'Z':(1, ['R1','R2']), 'Y':(2, ['R2','R3']), 'Z':(3, ['R1','R3'])}
->>>>>>> Stashed changes
