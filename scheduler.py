@@ -27,8 +27,10 @@ waiting_q = Queue()
 ready_q = Queue()
 timeUnit = 1
 core = 1
+tasks = []
 kernel_threads = []
 cores_in_use = 0  # Counter for the number of cores in use
+print_mutex = threading.Lock()
 
 def FCFS(ready_q):
     global core
@@ -54,6 +56,7 @@ def FCFS(ready_q):
 def execute_task(core, task):
     global timeUnit
     global mutex
+    global print_mutex
 
     print(f"Core {core}: Executing {task.name} with Duration: {task.duration} in time : {timeUnit}")
 
@@ -72,6 +75,22 @@ def execute_task(core, task):
 
         global cores_in_use
         cores_in_use -= 1
+
+        with print_mutex:
+            print_execution_result(core, task)
+
+def print_execution_result(core, task):
+    print(f"Core {core}: {task.name} completed in time: {timeUnit}")
+
+def print_results():
+    global kernel_threads
+    for thread in kernel_threads:
+        thread.join()  # Wait for all kernel threads to finish
+
+    print("\nExecution Results:")
+    for task in tasks:
+        print(f"{task.name}: State: {task.state}, Execution Time: {task.exec_time}")
+
 
 def main():
     global core
@@ -103,7 +122,12 @@ def main():
         print(f"{count}) Duration: {task.duration}, Type: {task.task_type}, Name: {task.name}, State: {task.state}, Time On CPU: {task.exec_time}")
         count += 1
 
+    print_thread = threading.Thread(target=print_results)
+    print_thread.start()
+
     FCFS(ready_q)
+
+    print_thread.join()
 
 if __name__ == "__main__":
     print("---- FCFS ---")
@@ -111,6 +135,7 @@ if __name__ == "__main__":
 
 # import threading
 # from queue import Queue
+# import time
 
 # class Task:
 #     def __init__(self, name, task_type, duration):
@@ -122,7 +147,6 @@ if __name__ == "__main__":
 #         self.exec_time = 0
 #         self.priority = 0
 
-#         # Setting resources and priority based on task type
 #         if task_type == 'X':
 #             self.resources = ['R1', 'R2']
 #             self.priority = 3
@@ -137,20 +161,30 @@ if __name__ == "__main__":
 # waiting_q = Queue()
 # ready_q = Queue()
 # timeUnit = 1
-# core=1
+# core = 1
 # kernel_threads = []
+# cores_in_use = 0  # Counter for the number of cores in use
 
 # def FCFS(ready_q):
 #     global core
+#     global cores_in_use
 #     global timeUnit
 #     while not ready_q.empty():
-#         current_task = ready_q.get()
-#         kernel_thread = threading.Thread(target=execute_task, args=(core, current_task))
-#         kernel_threads.append(kernel_thread)
-#         core += 1
-#         if core == 4:
-#             timeUnit += 1
-#             kernel_thread.start()
+#         mutex.acquire()
+#         if cores_in_use < 4:
+#             cores_in_use += 1
+#             mutex.release()
+#             current_task = ready_q.get()
+#             kernel_thread = threading.Thread(target=execute_task, args=(core, current_task))
+#             kernel_threads.append(kernel_thread)
+#             core += 1
+#             if core == 5:
+#                 timeUnit += 1
+#                 core = 1
+#                 for thread in kernel_threads:
+#                     thread.start()
+#         else:
+#             mutex.release()
 
 # def execute_task(core, task):
 #     global timeUnit
@@ -159,7 +193,6 @@ if __name__ == "__main__":
 #     print(f"Core {core}: Executing {task.name} with Duration: {task.duration} in time : {timeUnit}")
 
 #     # Simulating task execution by sleeping for the task's duration
-#     import time
 #     time.sleep(task.duration)
 
 #     # Updating task state and execution time
@@ -172,7 +205,11 @@ if __name__ == "__main__":
 #         print(f"Core {core}: Releasing resources {task.resources}")
 #         # Add logic to release resources if needed
 
+#         global cores_in_use
+#         cores_in_use -= 1
+
 # def main():
+#     global core
 #     num_resources = list(map(int, input("Enter the data for resources and tasks:\n").split()))
 #     num_tasks = int(input())
 #     tasks = []
@@ -188,18 +225,18 @@ if __name__ == "__main__":
 #     print("Task details:")
 #     count = 1
 
-#     for priority in range(1, 4):
-#         for task in tasks:
-#             if priority == task.priority:
-#                 ready_q.put(task)
+#     # prioritises the ready_q
+#     # for priority in range(1, 4):
+#     #     for task in tasks:
+#     #         if priority == task.priority:
+#     #             ready_q.put(task)
+
+#     for task in tasks:
+#         ready_q.put(task)
 
 #     for task in tasks:
 #         print(f"{count}) Duration: {task.duration}, Type: {task.task_type}, Name: {task.name}, State: {task.state}, Time On CPU: {task.exec_time}")
 #         count += 1
-
-#     # while not ready_q.empty():
-#     #     x = ready_q.get()
-#     #     print(f"Name: {x.name}, Type: {x.task_type}, Duration: {x.duration}, Priority: {x.priority}")
 
 #     FCFS(ready_q)
 
