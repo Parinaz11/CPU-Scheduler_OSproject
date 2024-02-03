@@ -32,6 +32,7 @@ kernel_threads = []
 cores_in_use = 0  # Counter for the number of cores in use
 print_mutex = threading.Lock()
 
+# FCFS
 def FCFS(ready_q):
     global core
     global cores_in_use
@@ -65,8 +66,9 @@ def execute_task(core, task):
 
     # Updating task state and execution time
     task.state = 'Completed'
-    task.exec_time = task.duration
-    print(f"Core {core}: {task.name} completed in time : {timeUnit}")
+    # task.exec_time = task.duration
+    task.exec_time=task.duration+timeUnit
+    # print(f"Core {core}: {task.name} completed in time : {task.exec_time}")
 
     # Release resources
     with mutex:
@@ -80,7 +82,7 @@ def execute_task(core, task):
             print_execution_result(core, task)
 
 def print_execution_result(core, task):
-    print(f"Core {core}: {task.name} completed in time: {timeUnit}")
+    print(f"Core {core}: {task.name} completed in time: {task.exec_time}")
 
 def print_results():
     global kernel_threads
