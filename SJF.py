@@ -24,8 +24,6 @@ class Task:
             self.priority = 1
 
 mutex = threading.Lock()
-# waiting_q = PriorityQueue()  # Priority queue for SJF scheduling
-# ready_q = PriorityQueue()  # Ready queue for tasks ready to be executed
 waiting_q = Queue()
 ready_q = Queue()
 timeUnit = 1
@@ -42,29 +40,26 @@ def SJF(ready_q):
     global cores_in_use
     global timeUnit
     global tasks
+    global kernel_threads_lock
+    global waiting_q
 
-kernel_threads_lock = threading.Lock()  # Add a lock for kernel_threads
+    # Use a lock for thread safety
+    mutex = threading.Lock()
 
-def SJF(ready_q):
-    global core
-    global cores_in_use
-    global timeUnit
-    global tasks
-    global kernel_threads_lock  # Add this line
-
-    # sort ready queue according to duration time and the rest like fcfs
+    # Sort ready queue based on duration
+    # duration_list = sorted([(task.duration, task) for task in ready_q.queue])
     duration_list = []
     while not ready_q.empty():
         task = ready_q.get()
         duration_list.append((task.duration, task))  # Use priority for sorting
 
-    duration_list.sort()  # Sort in descending order based on duration
-    pointer = 0  # Initialize the pointer to 0
+    duration_list.sort() 
+
     while len(duration_list) > 0:
         mutex.acquire()
-        if cores_in_use < 4 and pointer < len(duration_list):  # Check if there are available cores and tasks
+        if cores_in_use < 4 and duration_list:  # Check available cores and tasks
             cores_in_use += 1
-            current_task = duration_list.pop(pointer)[1]  # Pop the task at the pointer index
+            current_task = duration_list.pop(0)[1]  # Pop the task with the shortest duration
             mutex.release()
 
             kernel_thread = threading.Thread(target=execute_task, args=(core, current_task))
@@ -76,46 +71,41 @@ def SJF(ready_q):
                 core = 1
         else:
             mutex.release()
+            # If resources are not available, add the task to the waiting queue
+            waiting_q.put(duration_list.pop(0)[1])
+            #  SJF(waiting_q)
             break
-
-        pointer += 1
-
 
 # def SJF(ready_q):
 #     global core
 #     global cores_in_use
 #     global timeUnit
 #     global tasks
+#     global kernel_threads_lock
 
-#     # sort ready queue according to duration time and the rest like fcfs
-#     duration_list = []
-#     while not ready_q.empty():
-#         task = ready_q.get()
-#         duration_list.append((task.duration, task))  # Use priority for sorting
+#     # Use a lock for thread safety
+#     mutex = threading.Lock()
 
-#     duration_list.sort(reverse=True)  # Sort in descending order based on duration
-#     pointer = 0 # Initialize the pointer to 0
+#     # Sort ready queue based on duration
+#     duration_list = sorted([(task.duration, task) for task in ready_q.queue])
+
 #     while len(duration_list) > 0:
 #         mutex.acquire()
-#         if cores_in_use < 4 and pointer < len(duration_list):  # Check if there are available cores and tasks
+#         if cores_in_use < 4 and duration_list:  # Check available cores and tasks
 #             cores_in_use += 1
-#             current_task = duration_list.pop(pointer)[1]  # Pop the task at the pointer index
+#             current_task = duration_list.pop(0)[1]  # Pop the task with the shortest duration
 #             mutex.release()
 
 #             kernel_thread = threading.Thread(target=execute_task, args=(core, current_task))
-#             kernel_threads.append(kernel_thread)
+#             kernel_thread.start()  # Start the new thread
 #             core += 1
 
 #             if core == 5:
 #                 timeUnit += 1
 #                 core = 1
-
-#             for thread in kernel_threads:
-#                 thread.start()
 #         else:
 #             mutex.release()
-        
-#         pointer += 1
+#             break
 
 
 def execute_task(core, task):
@@ -129,7 +119,7 @@ def execute_task(core, task):
 
     task.state = 'Completed'
     task.exec_time = task.duration
-    print(f"Core {core}: {task.name} completed in time: {timeUnit}")
+    print(f"Core {core}: {task.name} completed in time: {timeUnit+task.exec_time}")
 
     with mutex:
         print(f"Core {core}: Releasing resources {task.resources}")
@@ -141,7 +131,7 @@ def execute_task(core, task):
             print_execution_result(core, task)
 
 def print_execution_result(core, task):
-    print(f"Core {core}: {task.name} completed in time: {timeUnit}")
+    print(f"Core {core}: {task.name} completed in time: {timeUnit+task.exec_time}")
 
 def print_results():
     global kernel_threads
@@ -169,9 +159,6 @@ def main():
     print(f"Number of tasks: {num_tasks}")
     print("Task details:")
     count = 1
-
-    # for task in tasks:
-    #     waiting_q.put((task.duration, task))  # Enqueue tasks with priority based on their duration
 
     for task in tasks: 
         ready_q.put(task)
