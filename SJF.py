@@ -1,5 +1,6 @@
 import threading
-from queue import PriorityQueue
+# from queue import PriorityQueue
+from queue import Queue
 import time
 
 class Task:
@@ -23,29 +24,100 @@ class Task:
             self.priority = 1
 
 mutex = threading.Lock()
-waiting_q = PriorityQueue()  # Priority queue for SJF scheduling
-ready_q = PriorityQueue()  # Ready queue for tasks ready to be executed
+# waiting_q = PriorityQueue()  # Priority queue for SJF scheduling
+# ready_q = PriorityQueue()  # Ready queue for tasks ready to be executed
+waiting_q = Queue()
+ready_q = Queue()
 timeUnit = 1
 core = 1
+tasks = []
 kernel_threads = []
 cores_in_use = 0
 print_mutex = threading.Lock()
+
+kernel_threads_lock = threading.Lock()  # Add a lock for kernel_threads
 
 def SJF(ready_q):
     global core
     global cores_in_use
     global timeUnit
     global tasks
-# sort ready queue according to duration time and the rest like fcfs
+
+kernel_threads_lock = threading.Lock()  # Add a lock for kernel_threads
+
+def SJF(ready_q):
+    global core
+    global cores_in_use
+    global timeUnit
+    global tasks
+    global kernel_threads_lock  # Add this line
+
+    # sort ready queue according to duration time and the rest like fcfs
     duration_list = []
     while not ready_q.empty():
         task = ready_q.get()
-        duration_list.append((task.priority, task))  # Use priority for sorting
-    print(duration_list)
-    duration_list.sort()
-    print(duration_list)
+        duration_list.append((task.duration, task))  # Use priority for sorting
 
-    
+    duration_list.sort()  # Sort in descending order based on duration
+    pointer = 0  # Initialize the pointer to 0
+    while len(duration_list) > 0:
+        mutex.acquire()
+        if cores_in_use < 4 and pointer < len(duration_list):  # Check if there are available cores and tasks
+            cores_in_use += 1
+            current_task = duration_list.pop(pointer)[1]  # Pop the task at the pointer index
+            mutex.release()
+
+            kernel_thread = threading.Thread(target=execute_task, args=(core, current_task))
+            kernel_thread.start()  # Start the new thread
+            core += 1
+
+            if core == 5:
+                timeUnit += 1
+                core = 1
+        else:
+            mutex.release()
+            break
+
+        pointer += 1
+
+
+# def SJF(ready_q):
+#     global core
+#     global cores_in_use
+#     global timeUnit
+#     global tasks
+
+#     # sort ready queue according to duration time and the rest like fcfs
+#     duration_list = []
+#     while not ready_q.empty():
+#         task = ready_q.get()
+#         duration_list.append((task.duration, task))  # Use priority for sorting
+
+#     duration_list.sort(reverse=True)  # Sort in descending order based on duration
+#     pointer = 0 # Initialize the pointer to 0
+#     while len(duration_list) > 0:
+#         mutex.acquire()
+#         if cores_in_use < 4 and pointer < len(duration_list):  # Check if there are available cores and tasks
+#             cores_in_use += 1
+#             current_task = duration_list.pop(pointer)[1]  # Pop the task at the pointer index
+#             mutex.release()
+
+#             kernel_thread = threading.Thread(target=execute_task, args=(core, current_task))
+#             kernel_threads.append(kernel_thread)
+#             core += 1
+
+#             if core == 5:
+#                 timeUnit += 1
+#                 core = 1
+
+#             for thread in kernel_threads:
+#                 thread.start()
+#         else:
+#             mutex.release()
+        
+#         pointer += 1
+
+
 def execute_task(core, task):
     global timeUnit
     global mutex
@@ -82,9 +154,10 @@ def print_results():
 
 def main():
     global core
+    global tasks
     num_resources = list(map(int, input("Enter the data for resources and tasks:\n").split()))
     num_tasks = int(input())
-    tasks = []
+    # tasks = []
 
     for _ in range(num_tasks):
         task_data = input().split()
