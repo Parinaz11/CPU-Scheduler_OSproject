@@ -34,35 +34,27 @@ cores_in_use = 0
 resource_lock = threading.Lock()
 resources = {'R1': 1, 'R2': 1, 'R3': 1}  # Initial number of available resources
 
-def SJF(ready_q):
+def RR(ready_q, quantum):
     global core
     global cores_in_use
     global timeUnit
 
-    while True:
+    while not ready_q.empty():
         mutex.acquire()
-        duration_list = sorted([(task.duration, task) for task in ready_q.queue])
+        current_task = ready_q.get()  # Get the next task in the ready queue
         mutex.release()
 
-        mutex.acquire()
-        if cores_in_use < 4 and duration_list:  # Check available cores and tasks
-            cores_in_use += 1
-            current_task = duration_list.pop(0)[1]  # Pop the task with the shortest duration
-            mutex.release()
-
-            kernel_thread = threading.Thread(target=execute_task, args=(core, current_task))
-            kernel_thread.start()  # Start the new thread
-            core += 1
-
-            if core == 5:
-                timeUnit += 1
-                core = 1
+        if current_task.duration > quantum:
+            current_task.duration -= quantum
+            execute_task(core, current_task, quantum)
         else:
-            mutex.release()
-            break
+            execute_task(core, current_task, current_task.duration)
 
-def execute_task(core, task):
-    global timeUnit
+        core = (core % 4) + 1  # Increment the core index in a round-robin fashion
+
+        timeUnit += 1
+
+def execute_task(core, task, execution_time):
     global resources
 
     # Acquire resources
@@ -78,25 +70,22 @@ def execute_task(core, task):
             waiting_q.put(task)
             return
 
-    print(f"Core {core}: Executing {task.name} with Duration: {task.duration} in time: {timeUnit}")
+    print(f"Core {core}: Executing {task.name} with Duration: {execution_time} in time: {timeUnit}")
 
-    time.sleep(task.duration)
+    time.sleep(execution_time)
 
     # Release resources
     with resource_lock:
         for resource in task.resources:
             resources[resource] += 1
 
-        print(f"Core {core}: Releasing resources {task.resources} in time: {timeUnit + task.exec_time}")
+        print(f"Core {core}: Releasing resources {task.resources} in time: {timeUnit + execution_time}")
 
-    task.state = 'Completed'
-    task.exec_time = task.duration
+    task.exec_time += execution_time
 
     with mutex:
         global cores_in_use
         cores_in_use -= 1
-
-    SJF(waiting_q)
 
 def print_results():
     for thread in threading.enumerate():
@@ -106,6 +95,7 @@ def print_results():
     print("\nExecution Results:")
     for task in tasks:
         print(f"{task.name}: State: {task.state}, Execution Time: {task.exec_time}")
+ 
 
 def main():
     global core
@@ -138,12 +128,12 @@ def main():
     print_thread = threading.Thread(target=print_results)
     print_thread.start()
 
-    # Start the SJF scheduling
-    SJF(ready_q)
+    # Start the RR scheduling
+    RR(ready_q, quantum=3)
 
     # Wait for the printing thread to finish
     print_thread.join()
 
 if __name__ == "__main__":
-    print("---- SJF ---")
+    print("---- RR ---")
     main()
