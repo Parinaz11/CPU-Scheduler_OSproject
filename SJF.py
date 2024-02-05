@@ -1,5 +1,5 @@
 import threading
-from queue import PriorityQueue
+from queue import Queue
 import time
 
 class Task:
@@ -36,7 +36,7 @@ waiting_q = PriorityQueue()  # Priority queue for SJF scheduling
 ready_q = PriorityQueue()  # Ready queue for tasks ready to be executed with their priority being duration
 timeUnit = 1
 core = 1
-kernel_threads = []
+tasks = []
 cores_in_use = 0
 print_mutex = threading.Lock()
 eventForPrint = threading.Event()
@@ -113,13 +113,17 @@ def execute_task(core):
 
     time.sleep(task.duration)
 
+    # Release resources
+    with resource_lock:
+        for resource in task.resources:
+            resources[resource] += 1
+
+        print(f"Core {core}: Releasing resources {task.resources} in time: {timeUnit + task.exec_time}")
+
     task.state = 'Completed'
     task.exec_time = task.duration
-    print(f"Core {core}: {task.name} completed in time: {timeUnit}")
 
     with mutex:
-        print(f"Core {core}: Releasing resources {task.resources}")
-
         global cores_in_use
         cores_in_use -= 1
 
@@ -141,8 +145,10 @@ def main():
     # Taking input
     # Number of resources R1, R2 and R3
     num_resources = list(map(int, input("Enter the data for resources and tasks:\n").split()))
+    resources["R1"]=num_resources[0]
+    resources["R2"]=num_resources[1]
+    resources["R3"]=num_resources[2]
     num_tasks = int(input())
-    tasks = []
 
     for _ in range(num_tasks):
         task_data = input().split()
