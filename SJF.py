@@ -8,9 +8,10 @@ class Task:
         self.task_type = task_type
         self.duration = duration
         self.resources = []
-        self.state = 'Ready'
+        self.state = 'Ready' # Can either be Ready, Waiting or Running 
         self.exec_time = 0
         self.priority = 0
+        self.doneOrRunning = False
 
         if task_type == 'X':
             self.resources = ['R1', 'R2']
@@ -22,36 +23,93 @@ class Task:
             self.resources = ['R1', 'R3']
             self.priority = 1
 
+    def getRemainingTime():
+        return self.duration - self.exec_time 
+
+    def getTask(task_name):
+        if self.name == task_name: return self
+        return None
+
+mappingResources = {'R1': 0, 'R2': 1, 'R3': 2}
 mutex = threading.Lock()
 waiting_q = PriorityQueue()  # Priority queue for SJF scheduling
-ready_q = PriorityQueue()  # Ready queue for tasks ready to be executed
+ready_q = PriorityQueue()  # Ready queue for tasks ready to be executed with their priority being duration
 timeUnit = 1
 core = 1
 kernel_threads = []
 cores_in_use = 0
 print_mutex = threading.Lock()
+eventForPrint = threading.Event()
+# coreTask is Idle or is equal to the name of the task it's doing, and cores are not assigned to a task at first
+coreTask = ['Idle'] * 4
+coreAssigned = [False] * 4
+# To determine whether the threads should stop their job
+exit_flag = False 
 
-def SJF(ready_q):
-    global core
-    global cores_in_use
-    global timeUnit
-    global tasks
-# sort ready queue according to duration time and the rest like fcfs
-    duration_list = []
-    while not ready_q.empty():
-        task = ready_q.get()
-        duration_list.append((task.priority, task))  # Use priority for sorting
-    print(duration_list)
-    duration_list.sort()
-    print(duration_list)
+def checkingForAvilableResources(tr1, tr2):
+    r1 = mappingResources.get(tr1)
+    r2 = mappingResources.get(tr2)
+    return (num_resources[r1] > 0 and num_resources[r2] > 0)
 
+def assignResources(tr1, tr2):
+    r1 = mappingResources.get(tr1)
+    r2 = mappingResources.get(tr2)
+    num_resources[r1] -= 1
+    num_resources[r2] -= 1
+
+def waitingtoReady():
+    backToWaiting = list()
+    while not waiting_q.empty():
+        t_duration, t_name = waiting_q.get()[1]
+        task = Task.getTask(t_name)
+        tr1, tr2 = task.resources[0], task.resources[1]
+        resourceAvilable = checkingForAvilableResources(tr1, tr2)
+        if resourceAvilable:
+            # Put the tast from waiting queue to ready queue
+            ready_q.put((t_duration, t_name))
+        else:
+            # Put the tast back in the waiting queue
+            backToWaiting.append((t_duration, t_name))
+    for t in backToWaiting:
+        waiting_q.put(t)
+    backToWaiting.clear()
     
-def execute_task(core, task):
-    global timeUnit
-    global mutex
-    global print_mutex
+def execute_task(core):
+    task = None
+    gotResource = False
+    while not exit_flag:
+        coreAssigned[core] = False
+        mutex.acquire()
+        # If any process is in the waiting queue and is ready, put it in the ready queue
+        waitingtoReady()
+        # Getting a task from the ready queue if it isn't empty
+        if ready_q:
+            task_name = ready_q.get()
+            task = Task.getTask(task_name)
+            task.state = 'Running'
+            # Checking to see if the resources for this task are available
+            tr1, tr2 = task.resources[0], task.resources[1]
+            resourceAvilable = checkingForAvilableResources(tr1, tr2)
+            if resourceAvilable:
+                assignResources(tr1, tr2)
+                coreTask[core] = task.name
+                gotResource = True
+            else:
+                # If the resources are not available the process should go to the waiting queue
+                waiting_q.put((task.duration, task.name))
+                task.state = 'Waiting'
+            task.exec_time += 1
 
-    print(f"Core {core}: Executing {task.name} with Duration: {task.duration} in time: {timeUnit}")
+        # If the task is done, release it's resources
+        if task.remaining_time < 0 and gotResource:
+            tr1, tr2 = task.resources[0], task.resources[1]
+            r1 = mappingResources.get(tr1)
+            r2 = mappingResources.get(tr2)
+            num_resources[r1] += 1
+            num_resources[r2] += 1
+            gotResource = False
+
+
 
     time.sleep(task.duration)
 
@@ -68,20 +126,20 @@ def execute_task(core, task):
         with print_mutex:
             print_execution_result(core, task)
 
-def print_execution_result(core, task):
-    print(f"Core {core}: {task.name} completed in time: {timeUnit}")
-
 def print_results():
-    global kernel_threads
-    for thread in kernel_threads:
-        thread.join()
-
-    print("\nExecution Results:")
-    for task in tasks:
-        print(f"{task.name}: State: {task.state}, Execution Time: {task.exec_time}")
-
+    while not exit_flag:
+        # Waiting for the cores to be assigned a task so that we can print the results
+        eventForPrint.wait()
+        # Printing for each core
+        for core in range(4):
+            task = coreTask[i]
+            print(f'Core: {core}, Time: {timeUnit}, Task: {task}')
+        timeUnit += 1
+        eventForPrint.clear()
+    
 def main():
-    global core
+    # Taking input
+    # Number of resources R1, R2 and R3
     num_resources = list(map(int, input("Enter the data for resources and tasks:\n").split()))
     num_tasks = int(input())
     tasks = []
@@ -95,28 +153,22 @@ def main():
     print(f"Resources: {num_resources}")
     print(f"Number of tasks: {num_tasks}")
     print("Task details:")
+
     count = 1
-
-    # for task in tasks:
-    #     waiting_q.put((task.duration, task))  # Enqueue tasks with priority based on their duration
-
-    for task in tasks: 
-        ready_q.put(task)
-
     for task in tasks:
+        ready_q.put((task.duration, task.name)) # Putting all the tasks in the ready queue and sort based on duration
+        kernel_threads.append(threading.Thread(target=execute_task, args=(count,))) # Creating kernel threads
         print(f"{count}) Duration: {task.duration}, Type: {task.task_type}, Name: {task.name}, State: {task.state}, Time On CPU: {task.exec_time}")
         count += 1
 
-    # Start the printing thread
-    print_thread = threading.Thread(target=print_results)
+    # Creating the printing thread
+    print_thread = threading.Thread(target = print_results)
+    for thrd in kernel_threads:
+        thrd.start()
     print_thread.start()
-
-    # Start the SJF scheduling
-    SJF(ready_q)
-
     # Wait for the printing thread to finish
     print_thread.join()
 
 if __name__ == "__main__":
-    print("---- SJF ---")
+    print("--- SJF ---")
     main()

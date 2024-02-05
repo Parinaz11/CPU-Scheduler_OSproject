@@ -1,1 +1,0 @@
-task.priority, task)

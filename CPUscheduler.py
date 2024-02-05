@@ -87,7 +87,7 @@ def main():
 
     kernal_threads = []
     for core in range(1, 5):
-        kernel_thread = threading.Thread(target=sjf_scheduler, args=(core,))
+        kernel_thread = threading.Thread(target = sjf_scheduler, args = (core,))
         kernal_threads.append(kernel_thread)
         kernel_thread.start()
 
