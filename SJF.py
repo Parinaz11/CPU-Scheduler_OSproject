@@ -3,6 +3,8 @@ from queue import Queue
 from queue import PriorityQueue
 
 class Task:
+    
+    global tasks
     def __init__(self, name, task_type, duration):
         self.name = name
         self.task_type = task_type
@@ -31,7 +33,6 @@ class Task:
         return self.duration - self.exec_time 
 
     def getTask(task_name):
-        global tasks
         for task in tasks:
             if task.name == task_name:
                 return task
@@ -54,7 +55,7 @@ def waitingtoReady():
     global waiting_q, ready_q
     backToWaiting = list()
     while not waiting_q.empty():
-        t_p, t_name = waiting_q.get()[1]
+        t_p, t_name = waiting_q.get()
         task = Task.getTask(t_name)
         tr1, tr2 = task.resources[0], task.resources[1]
         resourceAvilable = checkingForAvailableResources(tr1, tr2)
@@ -64,7 +65,7 @@ def waitingtoReady():
             task.state = 'Ready'
         else:
             # Put the tast back in the waiting queue
-            backToWaiting.append((task.getPriorityForSJF, t_name))
+            backToWaiting.append((task.getPriorityForSJF(), t_name))
     for t in backToWaiting:
         waiting_q.put(t)
     backToWaiting.clear()
@@ -92,7 +93,7 @@ def execute_task(core):
                 gotResource = True
             else:
                 # If the resources are not available the process should go to the waiting queue
-                waiting_q.put((task.getPriorityForSJF, task.name))
+                waiting_q.put((task.getPriorityForSJF(), task.name))
                 task.state = 'Waiting'
                 task.waiting_time += 1
                 if task.waiting_time >= 3: # If the task waited more than 3 rounds, its priority goes up
