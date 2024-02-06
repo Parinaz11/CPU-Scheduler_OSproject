@@ -59,7 +59,9 @@ def execute_task(core, task):
     global mutex
     global print_mutex
 
-    print(f"Core {core}: Executing {task.name} with Duration: {task.duration} in time : {timeUnit}")
+    print(f"Core {core}: Executing {task.name} in time : {timeUnit}")
+
+    task.state = 'Running'
 
     # Simulating task execution by sleeping for the task's duration
     time.sleep(task.duration)
@@ -67,8 +69,8 @@ def execute_task(core, task):
     # Updating task state and execution time
     task.state = 'Completed'
     # task.exec_time = task.duration
-    task.exec_time=task.duration+timeUnit
-    # print(f"Core {core}: {task.name} completed in time : {task.exec_time}")
+    task.exec_time=task.duration
+    print(f"Core {core}: {task.name} completed in time : {task.exec_time} time on cpu : {task.exec_time}")
 
     # Release resources
     with mutex:

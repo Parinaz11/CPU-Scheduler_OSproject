@@ -4,3 +4,12 @@ t1  X   5
 t2  Z   8
 t3  Y   4
 t4  Z   2
+
+
+3 3 3   
+5       
+Task1 X 5  
+Task2 Y 3
+Task3 Z 4
+Task4 X 2
+Task5 Z 6
