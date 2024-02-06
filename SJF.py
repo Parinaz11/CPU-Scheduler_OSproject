@@ -58,7 +58,6 @@ def waitingtoReady():
             ready_q.put((t_duration, t_name))
             task.state = 'Ready'
         else:
-<<<<<<< Updated upstream
             # Put the tast back in the waiting queue
             backToWaiting.append((t_duration, t_name))
     for t in backToWaiting:
@@ -101,23 +100,6 @@ def execute_task(core):
                 num_resources[r1] += 1
                 num_resources[r2] += 1
                 gotResource = False
-=======
-            mutex.release()
-            break
-
-
-def execute_task(core, task):
-    global timeUnit
-    global resources
-
-    # Acquire resources
-    with resource_lock:
-        resources_available = all(resources[resource] > 0 for resource in task.resources)
-
-        if resources_available:
-            for resource in task.resources:
-                resources[resource] -= 1
->>>>>>> Stashed changes
 
         else:
             # When there is nothing in the ready queue
@@ -129,11 +111,6 @@ def execute_task(core, task):
                 eventForPrint.set()
 
         mutex.release()
-
-<<<<<<< Updated upstream
-=======
-    # SJF(waiting_q)
->>>>>>> Stashed changes
 
 def print_results():
     global exit_flag, countDone, eventForPrint, coreTask, countDone, timeUnit
