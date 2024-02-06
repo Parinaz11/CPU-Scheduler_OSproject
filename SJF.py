@@ -6,12 +6,14 @@ class Task:
     def __init__(self, name, task_type, duration):
         self.name = name
         self.task_type = task_type
-        self.duration = duration
-        self.resources = []
+        self.resources = list()
         self.state = 'Ready' # Can either be Ready, Waiting or Running 
         self.exec_time = 0
         self.priority = 0
+        self.priorityOverTime = 0
+        self.duration = duration
         self.doneOrRunning = False
+        self.waiting_time = 0  # to track of waiting time for starvation (aging)
         if task_type == 'X':
             self.resources = ['R1', 'R2']
             self.priority = 3
@@ -21,6 +23,9 @@ class Task:
         elif task_type == 'Z':
             self.resources = ['R1', 'R3']
             self.priority = 1
+
+    def getPriorityForSJF(self):
+        return self.duration - self.priorityOverTime
 
     def getRemainingTime(self):
         return self.duration - self.exec_time 
@@ -49,26 +54,26 @@ def waitingtoReady():
     global waiting_q, ready_q
     backToWaiting = list()
     while not waiting_q.empty():
-        t_duration, t_name = waiting_q.get()[1]
+        t_p, t_name = waiting_q.get()[1]
         task = Task.getTask(t_name)
         tr1, tr2 = task.resources[0], task.resources[1]
         resourceAvilable = checkingForAvailableResources(tr1, tr2)
         if resourceAvilable:
             # Put the tast from waiting queue to ready queue
-            ready_q.put((t_duration, t_name))
+            ready_q.put((t_p, t_name))
             task.state = 'Ready'
         else:
             # Put the tast back in the waiting queue
-            backToWaiting.append((t_duration, t_name))
+            backToWaiting.append((task.getPriorityForSJF, t_name))
     for t in backToWaiting:
         waiting_q.put(t)
     backToWaiting.clear()
     
 def execute_task(core):
-    global coreDone, mutex, exit_flag, ready_q, coreTask, waiting_q, tasks
+    global coreDone, mutex, ready_q, coreTask, waiting_q, tasks
     gotResource = False
     coreDone[core] = False
-    while not exit_flag:
+    while not exit_event.is_set():
         mutex.acquire()
         # If any process is in the waiting queue and is ready, put it in the ready queue
         waitingtoReady()
@@ -76,7 +81,6 @@ def execute_task(core):
         if not ready_q.empty():
             task_name = ready_q.get()[1]
             # Finding which task it was
-            print("I'm LOOKING FOR", task_name)
             task = Task.getTask(task_name)
             task.state = 'Running'
             # Checking to see if the resources for this task are available
@@ -88,8 +92,11 @@ def execute_task(core):
                 gotResource = True
             else:
                 # If the resources are not available the process should go to the waiting queue
-                waiting_q.put((task.duration, task.name))
+                waiting_q.put((task.getPriorityForSJF, task.name))
                 task.state = 'Waiting'
+                task.waiting_time += 1
+                if task.waiting_time >= 3: # If the task waited more than 3 rounds, its priority goes up
+                    task.priorityOverTime += 1
             task.exec_time += 1
 
             # If the task is done, release its resources
@@ -114,15 +121,11 @@ def execute_task(core):
 
 
 def print_results():
-    global exit_flag, countDone, eventForPrint, coreTask, countDone, timeUnit
-    while not exit_flag and timeUnit < 20:
+    global countDone, eventForPrint, coreTask, countDone, timeUnit
+    while not exit_event.is_set() and timeUnit < 20:
         # Waiting for the cores to be assigned a task so that we can print the results
         eventForPrint.wait()
-        # Checking for exiting the program
-        count = 0
-        for c in coreTask:
-            if c == 'Idle': count += 1
-        if count == 4: exit_flag = True
+        eventForPrint.clear()
         # Printing for each core
         for core in range(4):
             task = coreTask[core]
@@ -146,10 +149,10 @@ coreDone = [False] * 4
 exit_flag = False 
 countDone = 0
 num_resources = list()
+exit_event = threading.Event()
 
 def main():
     global tasks, num_resources
-    # Taking input
     # Number of resources R1, R2 and R3
     num_resources = list(map(int, input("Enter the data for resources and tasks:\n").split()))
     num_tasks = int(input())
@@ -164,20 +167,24 @@ def main():
     print("Task details:")
 
     kernel_threads = list()
-    count = 0
-    for task in tasks:
-        ready_q.put((task.duration, task.name)) # Putting all the tasks in the ready queue and sort based on duration
-        kernel_threads.append(threading.Thread(target=execute_task, args=(count,))) # Creating kernel threads
-        print(f"{count}) Duration: {task.duration}, Type: {task.task_type}, Name: {task.name}, State: {task.state}, Time On CPU: {task.exec_time}")
-        count += 1
+    for i in range(num_tasks):
+        gp = int(tasks[i].getPriorityForSJF())
+        ready_q.put((gp, tasks[i].name)) # Putting all the tasks in the ready queue and sort based on duration
+        kernel_threads.append(threading.Thread(target=execute_task, args=(i % 4,))) # Creating kernel threads
+        print(f"{i+1}) Duration: {tasks[i].duration}, Type: {tasks[i].task_type}, Name: {tasks[i].name}, State: {tasks[i].state}, Time On CPU: {tasks[i].exec_time}")
 
     # Creating the printing thread
     print_thread = threading.Thread(target = print_results)
     for thrd in kernel_threads:
         thrd.start()
     print_thread.start()
-    # Wait for the printing thread to finish
     print_thread.join()
+
+    # Signaling threads to exit
+    exit_event.set()
+
+    for thrd in kernel_threads:
+        thrd.join()
 
 if __name__ == "__main__":
     print("--- SJF ---")
