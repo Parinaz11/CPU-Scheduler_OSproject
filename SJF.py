@@ -119,7 +119,6 @@ def execute_task(core):
 
         mutex.release()
 
-
 def print_results():
     global countDone, eventForPrint, coreTask, countDone, timeUnit
     while not exit_event.is_set() and timeUnit < 20:
