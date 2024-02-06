@@ -1,6 +1,6 @@
 import threading
 from queue import Queue
-import time
+# import time
 
 class Task:
     def __init__(self, name, task_type, duration):
@@ -29,8 +29,6 @@ timeUnit = 1
 core = 1
 tasks = []
 cores_in_use = 0
-
-
 resource_lock = threading.Lock()
 resources = {'R1': 1, 'R2': 1, 'R3': 1}  # Initial number of available resources
 
@@ -44,9 +42,9 @@ def RR(ready_q, quantum):
     while not ready_q.empty():
         mutex.acquire()
         while not ready_q.empty():
-            task=ready_q.get()
+            task = ready_q.get()
             priority_list.append((task.priority, task))
-        print(priority_list)
+        # print(priority_list)
         priority_list.sort(key=lambda x: x[0])
         mutex.release()
 
@@ -89,7 +87,7 @@ def execute_task(core, task, execution_time):
 
     print(f"Core {core}: Executing {task.name} with Duration: {execution_time} in time: {timeUnit}")
 
-    time.sleep(execution_time)
+    # time.sleep(execution_time)
 
     # Release resources
     with resource_lock:

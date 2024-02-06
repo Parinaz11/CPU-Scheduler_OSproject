@@ -61,7 +61,7 @@ def execute_task(core, task):
     print(f"Core {core}: Executing {task.name} in time : {timeUnit}")
 
     task.state = 'Running'
-    time.sleep(task.duration)
+    # time.sleep(task.duration)
     task.state = 'Completed'
     task.exec_time=task.duration
     print(f"Core {core}: {task.name} completed in time : {task.exec_time} time on cpu : {task.exec_time}")
