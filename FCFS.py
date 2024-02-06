@@ -29,10 +29,9 @@ timeUnit = 1
 core = 1
 tasks = []
 kernel_threads = []
-cores_in_use = 0  # Counter for the number of cores in use
+cores_in_use = 0  
 print_mutex = threading.Lock()
 
-# FCFS
 def FCFS(ready_q):
     global core
     global cores_in_use
@@ -62,21 +61,14 @@ def execute_task(core, task):
     print(f"Core {core}: Executing {task.name} in time : {timeUnit}")
 
     task.state = 'Running'
-
-    # Simulating task execution by sleeping for the task's duration
     time.sleep(task.duration)
-
-    # Updating task state and execution time
     task.state = 'Completed'
-    # task.exec_time = task.duration
     task.exec_time=task.duration
     print(f"Core {core}: {task.name} completed in time : {task.exec_time} time on cpu : {task.exec_time}")
 
     # Release resources
     with mutex:
         print(f"Core {core}: Releasing resources {task.resources}")
-        # Add logic to release resources if needed
-
         global cores_in_use
         cores_in_use -= 1
 
@@ -113,12 +105,6 @@ def main():
     print("Task details:")
     count = 1
 
-    # prioritises the ready_q
-    # for priority in range(1, 4):
-    #     for task in tasks:
-    #         if priority == task.priority:
-    #             ready_q.put(task)
-
     for task in tasks:
         ready_q.put(task)
 
@@ -134,5 +120,5 @@ def main():
     print_thread.join()
 
 if __name__ == "__main__":
-    print("---- FCFS ---")
+    print("---- FCFS ----")
     main()

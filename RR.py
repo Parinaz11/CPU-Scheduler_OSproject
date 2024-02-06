@@ -47,9 +47,7 @@ def RR(ready_q, quantum):
             task=ready_q.get()
             priority_list.append((task.priority, task))
         print(priority_list)
-        priority_list.sort()
-        # print(priority_list)
-        # priority_list = sorted([(task.priority, task) for task in ready_q.queue])
+        priority_list.sort(key=lambda x: x[0])
         mutex.release()
 
         mutex.acquire()
@@ -142,14 +140,9 @@ def main():
         print(f"{count}) Duration: {task.duration}, Type: {task.task_type}, Name: {task.name}, State: {task.state}")
         count += 1
 
-    # Start the printing thread
     print_thread = threading.Thread(target=print_results)
     print_thread.start()
-
-    # Start the RR scheduling
     RR(ready_q, quantum=3)
-
-    # Wait for the printing thread to finish
     print_thread.join()
 
 if __name__ == "__main__":
